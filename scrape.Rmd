@@ -1,0 +1,54 @@
+---
+title: "NHL Stanley Cup Playoff Predictions"
+author: "Ilari Scheinin"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+1. Scrape raw data
+------------------
+
+To scrape the data from [nhl.com](http://www.nhl.com), I am using the
+[nhlscrapr](https://github.com/acthomasca/nhlscrapr)
+[package](http://cran.r-project.org/web/packages/nhlscrapr/index.html). It has
+a single command `compile.all.games()`, which downloads and compiles
+everything together.
+
+However, it waits 20 seconds between every game, and therefore takes more than
+3.5 days to run. Instead, one might want to use something like the two options
+below to download games one-by-one or by season, and to set a shorter time
+interval.
+
+```{r}
+suppressMessages({
+  library(nhlscrapr)
+})
+
+compile.all.games()
+```
+
+To download games one-by-one or by season.
+
+```{r, eval=FALSE}
+
+# get full list of games available
+games <- full.game.database()
+
+# download by game
+apply(games, 1, function(game) {
+  download.single.game(season=game["season"], gcode=game["gcode"], wait=2)
+  gc()
+})
+
+# download by season
+lapply(unique(games$season), function(season) {
+  download.games(games[games$season == season, ], wait=2)
+  gc()
+})
+
+# and once downloaded, compile everything together
+compile.all.games()
+```
+
+Next: 3. Process data  
+Previous: [1. Canadian programming](canadian.html)

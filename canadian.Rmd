@@ -20,5 +20,5 @@ which is `source()`'d to each one of the processing scripts.
 source("canadian.R", echo=TRUE)
 ```
 
-Next: 2. Scrape raw data  
-Previous: <a href="https://github.com/ilarischeinin/stanley">README</a>
+Next: [2. Scrape raw data](scrape.html)  
+Previous: [README](https://github.com/ilarischeinin/stanley)
