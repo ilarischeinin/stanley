@@ -67,25 +67,246 @@ img {
 </div>
 
 
-<p>Previous: <a href="https://github.com/ilarischeinin/stanley">README</a><br />Next: <a href="scrape.html">2. Scrape raw data</a></p>
-<div id="canadian-programming" class="section level2">
-<h2>1. Canadian programming</h2>
-<p>Since the contemporary form of ice hockey is in essence a Canadian sport, I have written this project following conventions of <a href="http://programmers.stackexchange.com/a/5576">Canadian programming</a>. For example, instead of function <code>is.numeric()</code>, I’m using <code>numeric.eh()</code>.</p>
-<p>These function definitions are stored in file <code>canadian.R</code>, which is <code>source()</code>’d to each one of the processing scripts.</p>
-<pre class="r"><code>source(&quot;canadian.R&quot;, echo=TRUE)</code></pre>
-<pre><code>## 
-## &gt; infinite.eh &lt;- function(...) {
-## +     is.infinite(...)
-## + }
+<p>Previous: <a href="scrape.html">1. Scrape raw data</a><br />Next: <a href="model.html">3. Train models</a></p>
+<div id="process-data" class="section level2">
+<h2>2. Process data</h2>
+<p>This script reads the data files produced by nhlscrapr and generates a summary of each team’s performance in the regular season each year.</p>
+<p>First, load packages and the Canadian programming library:</p>
+<pre class="r"><code>suppressMessages(library(dplyr))
+source(&quot;canadian.R&quot;)</code></pre>
+<p>Then define a function to calculate each team’s performance for a given season.</p>
+<pre class="r"><code>process_season &lt;- function(theseason) {
+  load(file.path(&quot;source-data&quot;, paste0(&quot;nhlscrapr-&quot;, theseason, &quot;.RData&quot;)))
+  grand.data &lt;- tbl_df(grand.data)
+
+  gamestats &lt;- grand.data %&gt;%
+    filter(ev.team %in% unique(grand.data$hometeam)) %&gt;%
+    filter(substring(gcode, 1, 1) == &quot;2&quot;) %&gt;%
+    mutate(season==season) %&gt;%
+    group_by(season, gcode) %&gt;%
+    summarise(
+      awayteam=first(awayteam),
+      hometeam=first(hometeam),
+      goals=sum(etype == &quot;GOAL&quot;),
+      awaygoals=sum(ev.team == awayteam &amp; etype == &quot;GOAL&quot;) / goals,
+      homegoals=sum(ev.team == hometeam &amp; etype == &quot;GOAL&quot;) / goals,
+      shots=sum(etype %in% c(&quot;SHOT&quot;, &quot;GOAL&quot;)),
+      awayshots=sum(ev.team == awayteam &amp; etype %in% c(&quot;SHOT&quot;, &quot;GOAL&quot;)) / shots,
+      homeshots=sum(ev.team == hometeam &amp; etype %in% c(&quot;SHOT&quot;, &quot;GOAL&quot;)) / shots,
+      faceoffs=sum(etype == &quot;FAC&quot;),
+      awayfaceoffs=sum(ev.team == awayteam &amp; etype == &quot;FAC&quot;) / faceoffs,
+      homefaceoffs=sum(ev.team == hometeam &amp; etype == &quot;FAC&quot;) / faceoffs,
+      penalties=sum(etype == &quot;PENL&quot;),
+      awaypenalties=sum(ev.team == awayteam &amp; etype == &quot;PENL&quot;) / penalties,
+      homepenalties=sum(ev.team == hometeam &amp; etype == &quot;PENL&quot;) / penalties,
+      awaypp=(
+        sum(ev.team == awayteam &amp; etype == &quot;GOAL&quot; &amp;
+          away.skaters &gt; home.skaters) -
+        sum(ev.team == hometeam &amp; etype == &quot;GOAL&quot; &amp;
+          away.skaters &gt; home.skaters)) /
+        homepenalties / penalties,
+      homepp=(
+        sum(ev.team == hometeam &amp; etype == &quot;GOAL&quot; &amp;
+          away.skaters &lt; home.skaters) -
+        sum(ev.team == awayteam &amp; etype == &quot;GOAL&quot; &amp;
+          away.skaters &lt; home.skaters)) /
+        awaypenalties / penalties,
+      awaypk=1 - homepp,
+      homepk=1 - awaypp)
+
+  gamestats[na.eh(gamestats)] &lt;- 0
+
+  # the values in away.skaters and home.skaters sometimes imply pp/sh goals
+  # when there has been zero penalties
+  gamestats$awaypp[infinite.eh(gamestats$awaypp)] &lt;- 0
+  gamestats$homepp[infinite.eh(gamestats$homepp)] &lt;- 0
+  gamestats$awaypk[infinite.eh(gamestats$awaypk)] &lt;- 0
+  gamestats$homepk[infinite.eh(gamestats$homepk)] &lt;- 0
+  gamestats$season &lt;- as.character(gamestats$season)
+  gamestats &lt;- gamestats %&gt;% select(-goals, -shots, -faceoffs, -penalties)
+  
+  awaystats &lt;- gamestats
+  colnames(awaystats) &lt;- sub(&quot;^away(.*)$&quot;, &quot;\\1for&quot;, colnames(awaystats))
+  colnames(awaystats) &lt;- sub(&quot;^home(.*)$&quot;, &quot;\\1against&quot;, colnames(awaystats))
+  homestats &lt;- gamestats
+  colnames(homestats) &lt;- sub(&quot;^home(.*)$&quot;, &quot;\\1for&quot;, colnames(homestats))
+  colnames(homestats) &lt;- sub(&quot;^away(.*)$&quot;, &quot;\\1against&quot;, colnames(homestats))
+  homestats &lt;- homestats[, colnames(awaystats)]
+
+  # separate
+  # awaystats &lt;- awaystats %&gt;%
+  #   select(-gcode, -ends_with(&quot;against&quot;)) %&gt;%
+  #   rename(team=teamfor) %&gt;%
+  #   # ungroup() %&gt;%
+  #   group_by(season, team) %&gt;%
+  #   summarise_each(funs(mean))
+  # colnames(awaystats) &lt;- sub(&quot;for$&quot;, &quot;&quot;, colnames(awaystats))
+  # homestats &lt;- homestats %&gt;%
+  #   select(-gcode, -ends_with(&quot;against&quot;)) %&gt;%
+  #   rename(team=teamfor) %&gt;%
+  #   # ungroup() %&gt;%
+  #   group_by(season, team) %&gt;%
+  #   summarise_each(funs(mean))
+  # colnames(homestats) &lt;- sub(&quot;for$&quot;, &quot;&quot;, colnames(homestats))
+  # return(list(awaystats=awaystats, homestats=homestats))
+
+  # combined
+  combined &lt;- bind_rows(awaystats, homestats)
+  combined &lt;- combined %&gt;%
+    select(-gcode, -ends_with(&quot;against&quot;)) %&gt;%
+    rename(team=teamfor) %&gt;%
+    # ungroup() %&gt;%
+    group_by(season, team) %&gt;%
+    summarise_each(funs(mean))
+  colnames(combined) &lt;- sub(&quot;for$&quot;, &quot;&quot;, colnames(combined))
+  combined
+}</code></pre>
+<p>Load all available seasons and run the function on each one, combine, and save.</p>
+<pre class="r"><code>load(file.path(&quot;source-data&quot;, &quot;nhlscrapr-core.RData&quot;))
+seasons &lt;- unique(games$season)
+rm(list=c(&quot;games&quot;, &quot;roster.master&quot;, &quot;roster.unique&quot;))
+
+# separate
+# gamestats &lt;- lapply(seasons, process_season)
+# awaystats &lt;- bind_rows(lapply(gamestats, &quot;[[&quot;, &quot;awaystats&quot;))
+# homestats &lt;- bind_rows(lapply(gamestats, &quot;[[&quot;, &quot;homestats&quot;))
+
+# combined
+gamestats &lt;- bind_rows(lapply(seasons, process_season))
+gamestats</code></pre>
+<pre><code>## Source: local data frame [360 x 8]
 ## 
-## &gt; numeric.eh &lt;- function(...) {
-## +     is.numeric(...)
-## + }
-## 
-## &gt; na.eh &lt;- function(...) {
-## +     is.na(...)
-## + }</code></pre>
-<p>Next: <a href="scrape.html">2. Scrape raw data</a><br />Previous: <a href="https://github.com/ilarischeinin/stanley">README</a></p>
+##      season team     goals     shots  faceoffs penalties         pp        pk
+## 1  20022003  ANA 0.5369637 0.4867508 0.5537164 0.4907818 0.11350883 0.9354963
+## 2  20022003  ATL 0.4405960 0.4527466 0.4612568 0.4870169 0.09760004 0.8914839
+## 3  20022003  BOS 0.4873689 0.5341891 0.5000442 0.5228934 0.11202217 0.9039753
+## 4  20022003  BUF 0.4465960 0.5026040 0.4972677 0.5002007 0.09594512 0.9169387
+## 5  20022003  CAR 0.4072570 0.5125432 0.5226407 0.4812089 0.07565627 0.8589911
+## 6  20022003  CBJ 0.4514623 0.4454344 0.4796019 0.4912335 0.10196868 0.9095613
+## 7  20022003  CGY 0.4544792 0.5158007 0.5401598 0.4973248 0.05862875 0.8888816
+## 8  20022003  CHI 0.4839911 0.4856538 0.5045091 0.5491019 0.06271958 0.8894393
+## 9  20022003  COL 0.5771903 0.5001942 0.4737891 0.5085978 0.15007610 0.8743141
+## 10 20022003  DAL 0.5938088 0.5511950 0.5089099 0.4922747 0.15415828 0.9064706
+## ..      ...  ...       ...       ...       ...       ...        ...       ...</code></pre>
+<pre class="r"><code>saveRDS(gamestats, &quot;preprocessed.rds&quot;)</code></pre>
+<pre class="r"><code>knitr::kable(gamestats[1:10, ], digits=3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">season</th>
+<th align="left">team</th>
+<th align="right">goals</th>
+<th align="right">shots</th>
+<th align="right">faceoffs</th>
+<th align="right">penalties</th>
+<th align="right">pp</th>
+<th align="right">pk</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">20022003</td>
+<td align="left">ANA</td>
+<td align="right">0.537</td>
+<td align="right">0.487</td>
+<td align="right">0.554</td>
+<td align="right">0.491</td>
+<td align="right">0.114</td>
+<td align="right">0.935</td>
+</tr>
+<tr class="even">
+<td align="left">20022003</td>
+<td align="left">ATL</td>
+<td align="right">0.441</td>
+<td align="right">0.453</td>
+<td align="right">0.461</td>
+<td align="right">0.487</td>
+<td align="right">0.098</td>
+<td align="right">0.891</td>
+</tr>
+<tr class="odd">
+<td align="left">20022003</td>
+<td align="left">BOS</td>
+<td align="right">0.487</td>
+<td align="right">0.534</td>
+<td align="right">0.500</td>
+<td align="right">0.523</td>
+<td align="right">0.112</td>
+<td align="right">0.904</td>
+</tr>
+<tr class="even">
+<td align="left">20022003</td>
+<td align="left">BUF</td>
+<td align="right">0.447</td>
+<td align="right">0.503</td>
+<td align="right">0.497</td>
+<td align="right">0.500</td>
+<td align="right">0.096</td>
+<td align="right">0.917</td>
+</tr>
+<tr class="odd">
+<td align="left">20022003</td>
+<td align="left">CAR</td>
+<td align="right">0.407</td>
+<td align="right">0.513</td>
+<td align="right">0.523</td>
+<td align="right">0.481</td>
+<td align="right">0.076</td>
+<td align="right">0.859</td>
+</tr>
+<tr class="even">
+<td align="left">20022003</td>
+<td align="left">CBJ</td>
+<td align="right">0.451</td>
+<td align="right">0.445</td>
+<td align="right">0.480</td>
+<td align="right">0.491</td>
+<td align="right">0.102</td>
+<td align="right">0.910</td>
+</tr>
+<tr class="odd">
+<td align="left">20022003</td>
+<td align="left">CGY</td>
+<td align="right">0.454</td>
+<td align="right">0.516</td>
+<td align="right">0.540</td>
+<td align="right">0.497</td>
+<td align="right">0.059</td>
+<td align="right">0.889</td>
+</tr>
+<tr class="even">
+<td align="left">20022003</td>
+<td align="left">CHI</td>
+<td align="right">0.484</td>
+<td align="right">0.486</td>
+<td align="right">0.505</td>
+<td align="right">0.549</td>
+<td align="right">0.063</td>
+<td align="right">0.889</td>
+</tr>
+<tr class="odd">
+<td align="left">20022003</td>
+<td align="left">COL</td>
+<td align="right">0.577</td>
+<td align="right">0.500</td>
+<td align="right">0.474</td>
+<td align="right">0.509</td>
+<td align="right">0.150</td>
+<td align="right">0.874</td>
+</tr>
+<tr class="even">
+<td align="left">20022003</td>
+<td align="left">DAL</td>
+<td align="right">0.594</td>
+<td align="right">0.551</td>
+<td align="right">0.509</td>
+<td align="right">0.492</td>
+<td align="right">0.154</td>
+<td align="right">0.906</td>
+</tr>
+</tbody>
+</table>
+<p>Next: <a href="model.html">3. Train models</a><br />Previous: <a href="scrape.html">1. Scrape raw data</a></p>
 </div>
 
 

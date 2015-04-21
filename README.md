@@ -7,7 +7,7 @@ The process is split to five separate
 
 1. [Canadian programming][1]
 2. [Scrape raw data][2]
-3. Process data
+3. [Process data][3]
 4. Train models
 5. Make predictions
 
@@ -18,3 +18,4 @@ more feasible options are listed in the scraping document.
 
 [1]: https://rawgit.com/ilarischeinin/stanley/master/canadian.html
 [2]: https://rawgit.com/ilarischeinin/stanley/master/scrape.html
+[3]: https://rawgit.com/ilarischeinin/stanley/master/process.html

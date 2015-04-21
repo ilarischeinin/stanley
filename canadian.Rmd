@@ -5,6 +5,9 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
+Previous: [README](https://github.com/ilarischeinin/stanley)  
+Next: [2. Scrape raw data](scrape.html)
+
 1. Canadian programming
 -----------------------
 
