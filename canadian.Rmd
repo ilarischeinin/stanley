@@ -12,15 +12,19 @@ Next: [2. Scrape raw data](scrape.html)
 -----------------------
 
 Since the contemporary form of ice hockey is in essence a Canadian sport,
-I have written this project following conventions of
+as a sign of appreciation I have written this project following conventions of
 [Canadian programming](http://programmers.stackexchange.com/a/5576). For
 example, instead of function `is.numeric()`, I'm using `numeric.eh()`.
 
 These function definitions are stored in file `canadian.R`,
-which is `source()`'d to each one of the processing scripts.
+which is `source()`'d to other scripts used.
 
-```{r}
-source("canadian.R", echo=TRUE)
+```{r, eval=FALSE}
+source("canadian.R")
+```
+
+```{r, echo=FALSE, comment=""}
+cat(readLines("canadian.R"), sep="\n")
 ```
 
 Next: [2. Scrape raw data](scrape.html)  
