@@ -8,7 +8,7 @@ output: html_document
 Previous: [1. Scrape raw data](scrape.html)  
 Next: [3. Train models](model.html)
 
-2. Process data
+3. Process data
 ---------------
 
 This script reads the data files produced by nhlscrapr and generates a summary
@@ -21,7 +21,9 @@ options(width=120)
 ```
 
 ```{r}
-suppressMessages(library(dplyr))
+suppressMessages({
+  library(dplyr)
+})
 source("canadian.R")
 ```
 
@@ -29,8 +31,11 @@ Then define a function to calculate each team's performance for a given season.
 
 ```{r}
 process_season <- function(theseason) {
+  message("Processing season ", substring(theseason, 1, 4), "-",
+    substring(theseason, 5, 8), "...", appendLF=FALSE)
   load(file.path("source-data", paste0("nhlscrapr-", theseason, ".RData")))
   grand.data <- tbl_df(grand.data)
+  grand.data$season <- as.character(grand.data$season)
 
   gamestats <- grand.data %>%
     filter(ev.team %in% unique(grand.data$hometeam)) %>%
@@ -40,80 +45,67 @@ process_season <- function(theseason) {
     summarise(
       awayteam=first(awayteam),
       hometeam=first(hometeam),
-      goals=sum(etype == "GOAL"),
-      awaygoals=sum(ev.team == awayteam & etype == "GOAL") / goals,
-      homegoals=sum(ev.team == hometeam & etype == "GOAL") / goals,
-      shots=sum(etype %in% c("SHOT", "GOAL")),
-      awayshots=sum(ev.team == awayteam & etype %in% c("SHOT", "GOAL")) / shots,
-      homeshots=sum(ev.team == hometeam & etype %in% c("SHOT", "GOAL")) / shots,
-      faceoffs=sum(etype == "FAC"),
-      awayfaceoffs=sum(ev.team == awayteam & etype == "FAC") / faceoffs,
-      homefaceoffs=sum(ev.team == hometeam & etype == "FAC") / faceoffs,
-      penalties=sum(etype == "PENL"),
-      awaypenalties=sum(ev.team == awayteam & etype == "PENL") / penalties,
-      homepenalties=sum(ev.team == hometeam & etype == "PENL") / penalties,
-      awaypp=(
-        sum(ev.team == awayteam & etype == "GOAL" &
-          away.skaters > home.skaters) -
-        sum(ev.team == hometeam & etype == "GOAL" &
-          away.skaters > home.skaters)) /
-        homepenalties / penalties,
-      homepp=(
-        sum(ev.team == hometeam & etype == "GOAL" &
-          away.skaters < home.skaters) -
-        sum(ev.team == awayteam & etype == "GOAL" &
-          away.skaters < home.skaters)) /
-        awaypenalties / penalties,
-      awaypk=1 - homepp,
-      homepk=1 - awaypp)
+      totalgoals=sum(etype == "GOAL"),
+      awaygoals=sum(ev.team == awayteam & etype == "GOAL"),
+      homegoals=sum(ev.team == hometeam & etype == "GOAL"),
+      totalshots=sum(etype %in% c("SHOT", "GOAL")),
+      awayshots=sum(ev.team == awayteam & etype %in% c("SHOT", "GOAL")),
+      homeshots=sum(ev.team == hometeam & etype %in% c("SHOT", "GOAL")),
+      totalfaceoffs=sum(etype == "FAC"),
+      awayfaceoffs=sum(ev.team == awayteam & etype == "FAC"),
+      homefaceoffs=sum(ev.team == hometeam & etype == "FAC"),
+      totalpenalties=sum(etype == "PENL"),
+      awaypenalties=sum(ev.team == awayteam & etype == "PENL"),
+      homepenalties=sum(ev.team == hometeam & etype == "PENL"),
+      awaypp=sum(ev.team == awayteam & etype == "GOAL" &
+        away.skaters > home.skaters),
+      homepp=sum(ev.team == hometeam & etype == "GOAL" &
+        away.skaters < home.skaters),
+      awaysh=sum(ev.team == awayteam & etype == "GOAL" &
+        away.skaters < home.skaters),
+      homesh=sum(ev.team == hometeam & etype == "GOAL" &
+        away.skaters > home.skaters))
 
-  gamestats[na.eh(gamestats)] <- 0
+  awaygames <- gamestats %>%
+    ungroup() %>%
+    transmute(
+      season=season,
+      team=awayteam,
+      goals=awaygoals / totalgoals,
+      shots=awayshots / totalshots,
+      faceoffs=awayfaceoffs / totalfaceoffs,
+      penalties=ifelse(totalpenalties==0, NA, awaypenalties / totalpenalties),
+      pp=ifelse(homepenalties==0, NA, awaypp / homepenalties),
+      pk=ifelse(awaypenalties==0, NA, homepp / awaypenalties))
 
-  # the values in away.skaters and home.skaters sometimes imply pp/sh goals
-  # when there has been zero penalties
-  gamestats$awaypp[infinite.eh(gamestats$awaypp)] <- 0
-  gamestats$homepp[infinite.eh(gamestats$homepp)] <- 0
-  gamestats$awaypk[infinite.eh(gamestats$awaypk)] <- 0
-  gamestats$homepk[infinite.eh(gamestats$homepk)] <- 0
-  gamestats$season <- as.character(gamestats$season)
-  gamestats <- gamestats %>% select(-goals, -shots, -faceoffs, -penalties)
-  
-  awaystats <- gamestats
-  colnames(awaystats) <- sub("^away(.*)$", "\\1for", colnames(awaystats))
-  colnames(awaystats) <- sub("^home(.*)$", "\\1against", colnames(awaystats))
-  homestats <- gamestats
-  colnames(homestats) <- sub("^home(.*)$", "\\1for", colnames(homestats))
-  colnames(homestats) <- sub("^away(.*)$", "\\1against", colnames(homestats))
-  homestats <- homestats[, colnames(awaystats)]
+  homegames <- gamestats %>%
+    ungroup() %>%
+    transmute(
+      season=season,
+      team=hometeam,
+      goals=homegoals / totalgoals,
+      shots=homeshots / totalshots,
+      faceoffs=homefaceoffs / totalfaceoffs,
+      penalties=ifelse(totalpenalties==0, NA, homepenalties / totalpenalties),
+      pp=ifelse(awaypenalties==0, NA, homepp / awaypenalties),
+      pk=ifelse(homepenalties==0, NA, awaypp / homepenalties))
 
-  # separate
-  # awaystats <- awaystats %>%
-  #   select(-gcode, -ends_with("against")) %>%
-  #   rename(team=teamfor) %>%
-  #   # ungroup() %>%
-  #   group_by(season, team) %>%
-  #   summarise_each(funs(mean))
-  # colnames(awaystats) <- sub("for$", "", colnames(awaystats))
-  # homestats <- homestats %>%
-  #   select(-gcode, -ends_with("against")) %>%
-  #   rename(team=teamfor) %>%
-  #   # ungroup() %>%
-  #   group_by(season, team) %>%
-  #   summarise_each(funs(mean))
-  # colnames(homestats) <- sub("for$", "", colnames(homestats))
-  # return(list(awaystats=awaystats, homestats=homestats))
-
-  # combined
-  combined <- bind_rows(awaystats, homestats)
-  combined <- combined %>%
-    select(-gcode, -ends_with("against")) %>%
-    rename(team=teamfor) %>%
-    # ungroup() %>%
+  awaystats <- awaygames %>%
     group_by(season, team) %>%
-    summarise_each(funs(mean))
-  colnames(combined) <- sub("for$", "", colnames(combined))
-  combined
+    summarise_each(funs(mean(., na.rm=TRUE)))
+
+  homestats <- homegames %>%
+    group_by(season, team) %>%
+    summarise_each(funs(mean(., na.rm=TRUE)))
+
+  overallstats <- bind_rows(awaystats, homestats) %>%
+    group_by(season, team) %>%
+    summarise_each(funs(mean(., na.rm=TRUE)))
+
+  message()
+  list(away=awaystats, home=homestats, overall=overallstats)
 }
+
 ```
 
 Load all available seasons and run the function on each one, combine, and save.
@@ -124,19 +116,26 @@ seasons <- unique(games$season)
 rm(list=c("games", "roster.master", "roster.unique"))
 
 # separate
-# gamestats <- lapply(seasons, process_season)
-# awaystats <- bind_rows(lapply(gamestats, "[[", "awaystats"))
-# homestats <- bind_rows(lapply(gamestats, "[[", "homestats"))
-
-# combined
-gamestats <- bind_rows(lapply(seasons, process_season))
-gamestats
-
-saveRDS(gamestats, "preprocessed.rds")
+seasonstats <- lapply(seasons, process_season)
+gamestats <- list(
+  away=bind_rows(lapply(seasonstats, "[[", "away")),
+  home=bind_rows(lapply(seasonstats, "[[", "home")),
+  overall=bind_rows(lapply(seasonstats, "[[", "overall")))
+rm(list=c("seasons", "seasonstats"))
+  
+saveRDS(gamestats, "processed.rds")
 ```
 
-```{r, results='asis'}
-knitr::kable(gamestats[1:10, ], digits=3)
+```{r, eval=FALSE}
+head(gamestats[["away"]])
+head(gamestats[["home"]])
+head(gamestats[["overall"]])
+```
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(gamestats[["away"]]), digits=3)
+knitr::kable(head(gamestats[["home"]]), digits=3)
+knitr::kable(head(gamestats[["overall"]]), digits=3)
 ```
 
 Next: [3. Train models](model.html)  

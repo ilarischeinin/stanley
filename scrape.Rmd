@@ -6,9 +6,9 @@ output: html_document
 ---
 
 Previous: [1. Canadian programming](canadian.html)  
-Next: 3. Process data
+Next: [3. Process data](process.html)
 
-1. Scrape raw data
+2. Scrape raw data
 ------------------
 
 To scrape the data from [nhl.com](http://www.nhl.com), I am using the
@@ -53,5 +53,5 @@ lapply(unique(games$season), function(season) {
 compile.all.games()
 ```
 
-Next: 3. Process data  
+Next: [3. Process data](process.html)  
 Previous: [1. Canadian programming](canadian.html)
