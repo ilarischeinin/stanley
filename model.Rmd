@@ -1,0 +1,167 @@
+---
+title: "NHL Stanley Cup Playoff Predictions"
+author: "Ilari Scheinin"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+Previous: [3. Process data](process.html)  
+Next: [5. Make predictions](predict.html)
+
+4. Train models
+---------------
+
+Load packages and the Canadian programming library. Please note that
+`caret` automatically loads `plyr`. As I'm also using `dplyr`, it's crucial
+that `dplyr` is loaded after `plyr`. Doing it the other way around causes
+problems. Also define two CPU cores to be used for model training.
+
+```{r}
+suppressMessages({
+  library(plyr)
+  library(dplyr)
+  library(caret)
+  library(doMC)
+})
+source("canadian.R")
+registerDoMC(cores=2)
+```
+
+Function to detect home/away team and winner.
+
+```{r}
+team <- function(x, tied.eh=c("silent", "warn", "stop")) {
+  counts <- sort(table(x), decreasing=TRUE)
+  if ((length(counts) == 1) || (counts[1] > counts[2]))
+    return(names(counts)[1])
+  tied.eh <- match.arg(tied.eh)
+  if (tied.eh == "error")
+    stop("I'm sorry, but I couldn't figure out the winner: ",
+      paste(x, collapse=", "))
+  if (tied.eh == "warn")
+    warning("I couldn't figure out the winner: ", paste(x, collapse=", "))
+  x[1]
+}
+```
+
+Function to add game statistis.
+
+```{r}
+add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
+  which <- match.arg(which)
+  if (which == "overall") {
+    away <- left_join(games, gamestats[["overall"]],
+      by=c("season", awayteam="team"))
+    home <- left_join(games, gamestats[["overall"]],
+      by=c("season", hometeam="team"))
+  } else {
+    away <- left_join(games, gamestats[["away"]],
+      by=c("season", awayteam="team"))
+    home <- left_join(games, gamestats[["home"]],
+      by=c("season", hometeam="team"))
+  }
+
+  if (which == "both") {
+    away2 <- left_join(games, gamestats[["home"]],
+      by=c("season", awayteam="team"))
+    home2 <- left_join(games, gamestats[["away"]],
+      by=c("season", hometeam="team"))
+  }
+
+  games$goals <- away$goals - home$goals
+  games$shots <- away$shots - home$shots
+  games$faceoffs <- away$faceoffs - home$faceoffs
+  games$penalties <- away$penalties - home$penalties
+  games$pp <- away$pp - home$pk
+  games$pk <- away$pk - home$pp
+
+  if (which == "both") {
+    games$goals2 <- away2$goals - home2$goals
+    games$shots2 <- away2$shots - home2$shots
+    games$faceoffs2 <- away2$faceoffs - home2$faceoffs
+    games$penalties2 <- away2$penalties - home2$penalties
+    games$pp2 <- away2$pp - home2$pk
+    games$pk2 <- away2$pk - home2$pp
+  }
+
+  games
+}
+```
+
+Load and process.
+
+```{r}
+load(file.path("source-data", "nhlscrapr-core.RData"))
+rm(list=c("roster.master", "roster.unique"))
+
+gamestats <- readRDS("processed.rds")
+
+games <- tbl_df(games)
+games <- games %>%
+  filter(status != 0, session == "Playoffs", season != "20142015") %>%
+  mutate(awayscore=as.integer(awayscore), homescore=as.integer(homescore))
+
+playoffs <- games %>%
+  mutate(winner=ifelse(awayscore > homescore, awayteam, hometeam)) %>%
+  group_by(season, round=substring(gcode, 3, 3),
+    series=substring(gcode, 4, 4)) %>%
+  summarise(awayteam=team(awayteam), hometeam=team(hometeam),
+    winner=team(winner, tied.eh="stop")) %>%
+  select(season, round, series, awayteam, hometeam, winner) %>%
+  mutate(winner=ifelse(awayteam == winner, "away", "home"))
+
+playoffs <- add_stats(playoffs, gamestats)
+
+playoffs <- playoffs %>%
+  ungroup() %>%
+  mutate(season=as.integer(substring(season, 5, 8))) %>%
+  select(-season, -round, -series, -awayteam, -hometeam)
+
+playoffs$winner = as.factor(playoffs$winner)
+```
+
+```{r}
+# settings
+method <- "repeatedcv"
+number <- 10
+repeats <- 10
+preProcess <- c("center", "scale")
+tuneLength <- 5
+metric <- "Accuracy"
+maxVariables <- 5
+seeds <- vector(mode="list", length=repeats*number+1)
+for (i in seq_along(seeds))
+  seeds[[i]] <- (1000*i+1):(1000*i+1+tuneLength^maxVariables)
+
+fitControl <- trainControl(method=method, number=number, repeats=repeats,
+  seeds=seeds)
+
+model <- function(method) {
+  message("Training model: ", method, "...", appendLF=FALSE)
+  set.seed(7474505)
+  suppressMessages({ captured <- capture.output({
+    fit <- train(winner ~ ., data=playoffs,
+      method=method, trControl=fitControl, preProcess=preProcess,
+      metric=metric, tuneLength=tuneLength)
+  })})
+  message()
+  fit
+}
+
+methods <- c("glm", "lda", "nnet", "rf", "svmLinear")
+models <- lapply(methods, model)
+names(models) <- methods
+
+saveRDS(models, "models.rds")
+
+resamps <- resamples(models)
+summary(resamps)
+
+trellis.par.set(caretTheme())
+bwplot(resamps, layout=c(2, 1))
+dotplot(resamps, metric="Accuracy")
+dotplot(resamps, metric="Kappa")
+```
+
+Next: [5. Make predictions](predict.html)  
+Previous: [3. Process data](process.html)

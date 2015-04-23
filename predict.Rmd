@@ -1,0 +1,203 @@
+---
+title: "NHL Stanley Cup Playoff Predictions"
+author: "Ilari Scheinin"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+Previous: [4. Train models](model.html)  
+Next: [README](https://github.com/ilarischeinin/stanley)
+
+5. Make predictions
+-------------------
+
+Load packages and the Canadian programming library:
+
+```{r, echo=FALSE}
+options(width=120)
+```
+
+```{r}
+suppressMessages({
+  library(plyr)
+  library(dplyr)
+  library(caret)
+})
+source("canadian.R")
+```
+
+Function to add game statistis.
+
+```{r}
+add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
+  which <- match.arg(which)
+  if (which == "overall") {
+    away <- left_join(games, gamestats[["overall"]],
+      by=c("season", awayteam="team"))
+    home <- left_join(games, gamestats[["overall"]],
+      by=c("season", hometeam="team"))
+  } else {
+    away <- left_join(games, gamestats[["away"]],
+      by=c("season", awayteam="team"))
+    home <- left_join(games, gamestats[["home"]],
+      by=c("season", hometeam="team"))
+  }
+
+  if (which == "both") {
+    away2 <- left_join(games, gamestats[["home"]],
+      by=c("season", awayteam="team"))
+    home2 <- left_join(games, gamestats[["away"]],
+      by=c("season", hometeam="team"))
+  }
+
+  games$goals <- away$goals - home$goals
+  games$shots <- away$shots - home$shots
+  games$faceoffs <- away$faceoffs - home$faceoffs
+  games$penalties <- away$penalties - home$penalties
+  games$pp <- away$pp - home$pk
+  games$pk <- away$pk - home$pp
+
+  if (which == "both") {
+    games$goals2 <- away2$goals - home2$goals
+    games$shots2 <- away2$shots - home2$shots
+    games$faceoffs2 <- away2$faceoffs - home2$faceoffs
+    games$penalties2 <- away2$penalties - home2$penalties
+    games$pp2 <- away2$pp - home2$pk
+    games$pk2 <- away2$pk - home2$pp
+  }
+
+  games
+}
+```
+
+```{r}
+gamestats <- readRDS("processed.rds")
+models <- readRDS("models.rds")
+
+# accuracy <- function(fit) { max(fit$result[, fit$metric]) }
+# accuracies <- sapply(models, accuracy)
+#
+# kappa <- function(fit) { max(fit$result[, "Kappa"]) }
+# kappas <- sapply(models, kappa)
+#
+# fit <- models[[which.max(kappas)]]
+
+winners <- function(games, models, gamestats) {
+  suppressMessages({ captured <- capture.output({
+    predictions <- sapply(models, predict, newdata=add_stats(games, gamestats))
+  })})
+  if (nrow(games) > 1) {
+    concensus <- apply(predictions, 1, function(x)
+      names(sort(table(x), decreasing=TRUE))[1])
+  } else {
+    concensus <- names(sort(table(predictions), decreasing=TRUE))[1]
+  }
+  result <- games$hometeam
+  result[concensus == "away"] <- games$awayteam[concensus == "away"]
+  result
+}
+```
+
+Define the playoff games for round 1, and all possible game combinations for
+subsequent rounds.
+
+```{r}
+round1 <- data_frame(season="20142015",
+  awayteam=c("PIT", "OTT", "DET", "NYI", "WPG", "MIN", "CHI", "CGY"),
+  hometeam=c("NYR", "MTL", "T.B", "WSH", "ANA", "STL", "NSH", "VAN"))
+
+round2 <- data_frame(season="20142015",
+  awayteam=c("WSH", "NYI", "T.B", "DET", "OTT", "OTT", "PIT", "PIT",
+    "VAN", "CGY", "NSH", "CHI", "MIN", "MIN", "WPG", "CGY"),
+  hometeam=c("NYR", "NYR", "MTL", "MTL", "T.B", "DET", "WSH", "NYI",
+    "ANA", "ANA", "STL", "STL", "NSH", "CHI", "VAN", "WPG"))
+
+round3 <- data_frame(season="20142015",
+  awayteam=c(
+    "MTL", "T.B", "DET", "OTT",
+    "WSH", "NYI", "PIT",
+    "WSH", "NYI", "PIT",
+    "DET", "OTT",
+    "DET", "OTT",
+    "PIT",
+    "PIT",
+    "STL", "NSH", "CHI", "MIN",
+    "VAN", "WPG", "CGY",
+    "VAN", "WPG", "CGY",
+    "VAN", "WPG", "CGY",
+    "MIN",
+    "WPG", "CGY"),
+  hometeam=c(
+    "NYR", "NYR", "NYR", "NYR",
+    "MTL", "MTL", "MTL",
+    "T.B", "T.B", "T.B",
+    "WSH", "WSH",
+    "NYI", "NYI",
+    "DET",
+    "OTT",
+    "ANA", "ANA", "ANA", "ANA",
+    "STL", "STL", "STL",
+    "NSH", "NSH", "NSH",
+    "CHI", "CHI", "CHI",
+    "VAN",
+    "MIN", "MIN"))
+
+round4 <- data_frame(season="20142015",
+  awayteam=c(
+    "ANA", "STL", "NSH", "CHI", "VAN", "MIN", "WPG", "CGY",
+    "ANA", "STL", "NSH", "CHI", "VAN", "MIN", "WPG", "CGY",
+    "T.B", "WSH", "NYI", "DET", "OTT", "PIT",
+    "T.B", "WSH", "NYI", "DET", "OTT", "PIT",
+    "NSH", "CHI", "VAN", "MIN", "WPG", "CGY",
+    "WSH", "NYI", "DET", "OTT", "PIT",
+    "WSH", "NYI", "DET", "OTT", "PIT",
+    "WSH", "NYI", "DET", "OTT", "PIT",
+    "MIN", "WPG", "CGY",
+    "MIN", "WPG", "CGY",
+    "DET", "OTT", "PIT",
+    "WPG", "CGY",
+    "WPG", "CGY",
+    "PIT",
+    "CGY"),
+  hometeam=c(
+    "NYR", "NYR", "NYR", "NYR", "NYR", "NYR", "NYR", "NYR",
+    "MTL", "MTL", "MTL", "MTL", "MTL", "MTL", "MTL", "MTL",
+    "ANA", "ANA", "ANA", "ANA", "ANA", "ANA",
+    "STL", "STL", "STL", "STL", "STL", "STL",
+    "T.B", "T.B", "T.B", "T.B", "T.B", "T.B",
+    "NSH", "NSH", "NSH", "NSH", "NSH",
+    "CHI", "CHI", "CHI", "CHI", "CHI",
+    "VAN", "VAN", "VAN", "VAN", "VAN",
+    "WSH", "WSH", "WSH",
+    "NYI", "NYI", "NYI",
+    "MIN", "MIN", "MIN",
+    "DET", "DET",
+    "OTT", "OTT",
+    "WPG",
+    "PIT"))
+```
+
+Predict.
+
+```{r}
+round1$winner <- winners(round1, models, gamestats)
+round1
+
+round2 <- round2 %>%
+  filter(awayteam %in% round1$winner, hometeam %in% round1$winner)
+round2$winner <- winners(round2, models, gamestats)
+round2
+
+round3 <- round3 %>%
+  filter(awayteam %in% round2$winner, hometeam %in% round2$winner)
+round3$winner <- winners(round3, models, gamestats)
+round3
+
+round4 <- round4 %>%
+  filter(awayteam %in% round3$winner, hometeam %in% round3$winner)
+round4$winner <- winners(round4, models, gamestats)
+round4
+```
+
+Next: [README](https://github.com/ilarischeinin/stanley)  
+Previous: [4. Train models](model.html)
