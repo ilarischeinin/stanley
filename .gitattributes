@@ -1,2 +1,2 @@
 *.html	linguist-documentation
-*.Rmd	R
+*.Rmd	linguist-documentation=false
