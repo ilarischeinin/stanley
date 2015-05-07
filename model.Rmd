@@ -11,13 +11,20 @@ Next: [5. Make predictions](predict.html)
 4. Train models
 ---------------
 
-Load packages and the Canadian programming library. Please note that
-`caret` automatically loads `plyr`. As I'm also using `dplyr`, it's crucial
-that `dplyr` is loaded after `plyr`. Doing it the other way around causes
-problems. Also define two CPU cores to be used for model training.
+The summary statistics generated in the previous step are now combined with
+performance in the playoffs, and then used to train models. To facilitate use
+of multiple different models, I am using the
+[caret](https://github.com/topepo/caret)
+[package](http://cran.r-project.org/web/packages/caret/), which provides a
+unified interface for this purpose. In order to use both CPU cores on my laptop,
+I am using [package doMC](http://cran.r-project.org/web/packages/doMC/).
+
+Load packages and the Canadian programming library.
 
 ```{r}
 suppressMessages({
+  # caret uses package plyr, but whenever dplyr and plyr are both loaded,
+  # dplyr should be loaded after plyr. Hence plyr is loaded explicitly.
   library(plyr)
   library(dplyr)
   library(caret)
@@ -27,24 +34,28 @@ source("canadian.R")
 registerDoMC(cores=2)
 ```
 
-Function to detect home/away team and winner.
+Define a function to detect the winner of a series. It takes a vector of
+winners of individual games and returns the overall winner.
 
 ```{r}
-team <- function(x, tied.eh=c("silent", "warn", "stop")) {
+series_winner <- function(x) {
   counts <- sort(table(x), decreasing=TRUE)
   if ((length(counts) == 1) || (counts[1] > counts[2]))
     return(names(counts)[1])
-  tied.eh <- match.arg(tied.eh)
-  if (tied.eh == "error")
-    stop("I'm sorry, but I couldn't figure out the winner: ",
-      paste(x, collapse=", "))
-  if (tied.eh == "warn")
-    warning("I couldn't figure out the winner: ", paste(x, collapse=", "))
-  x[1]
+  stop("I'm sorry, but I couldn't figure out the winner: ",
+    paste(x, collapse=", "))
 }
 ```
 
-Function to add game statistis.
+Define a function to append game statistics to the outcome of a playoff series.
+Its behavior can be controlled with the argument `which` between these three
+options:
+
+* `overall`: `away team's overall performance - home team's overall performance`
+* `single`: `away team's away performance - home team's home performance`
+* `both`: `away team's away performance - home team's home performance` and
+  `away team's home performance - home team's away performance`
+   (default, and the one I am using here)
 
 ```{r}
 add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
@@ -88,7 +99,7 @@ add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
 }
 ```
 
-Load and process.
+Load data and append summary statistics.
 
 ```{r}
 load(file.path("source-data", "nhlscrapr-core.RData"))
@@ -105,38 +116,59 @@ playoffs <- games %>%
   mutate(winner=ifelse(awayscore > homescore, awayteam, hometeam)) %>%
   group_by(season, round=substring(gcode, 3, 3),
     series=substring(gcode, 4, 4)) %>%
-  summarise(awayteam=team(awayteam), hometeam=team(hometeam),
-    winner=team(winner, tied.eh="stop")) %>%
-  select(season, round, series, awayteam, hometeam, winner) %>%
-  mutate(winner=ifelse(awayteam == winner, "away", "home"))
+  summarise(awayteam=first(awayteam), hometeam=first(hometeam),
+    winner=series_winner(winner)) %>%
+  ungroup() %>%
+  select(season, awayteam, hometeam, winner) %>%
+  mutate(winner=as.factor(ifelse(awayteam == winner, "away", "home")))
 
 playoffs <- add_stats(playoffs, gamestats)
 
 playoffs <- playoffs %>%
-  ungroup() %>%
-  mutate(season=as.integer(substring(season, 5, 8))) %>%
-  select(-season, -round, -series, -awayteam, -hometeam)
+  select(-season, -awayteam, -hometeam)
 
-playoffs$winner = as.factor(playoffs$winner)
 ```
 
+The training data looks like this:
+
+```{r, eval=FALSE}
+head(playoffs)
+```
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(playoffs), digits=3)
+```
+
+Next, define parameters for the model training. I am preprocessing the data
+with centering and scaling, and then using a 10-fold cross-validation repeated
+10 times for parameter tuning. For each parameter, five different values are
+evaluated via the cross-validation, and the combination with the best overall
+accuracy chosen. A final model is then fitted with all of the training data and
+the chosen parameter values.
+
+In order to make the analysis reproducible, sets of random seeds are generated
+to be used at each point of training.
+
 ```{r}
-# settings
 method <- "repeatedcv"
 number <- 10
 repeats <- 10
 preProcess <- c("center", "scale")
 tuneLength <- 5
 metric <- "Accuracy"
-maxVariables <- 5
+maxParameters <- 5
 seeds <- vector(mode="list", length=repeats*number+1)
 for (i in seq_along(seeds))
-  seeds[[i]] <- (1000*i+1):(1000*i+1+tuneLength^maxVariables)
+  seeds[[i]] <- (1000*i+1):(1000*i+1+tuneLength^maxParameters)
 
 fitControl <- trainControl(method=method, number=number, repeats=repeats,
   seeds=seeds)
+```
 
-model <- function(method) {
+Define a function that trains the models.
+
+```{r}
+train_model <- function(method) {
   message("Training model: ", method, "...", appendLF=FALSE)
   set.seed(7474505)
   suppressMessages({ captured <- capture.output({
@@ -147,20 +179,22 @@ model <- function(method) {
   message()
   fit
 }
+```
 
+Define which models we want to include, and then train them. I am including
+generalized linear model, linear discriminant analysis, neural network, random
+forests, and a support vector machine with a linear kernel. Each one of them
+undergoes the cross-validation for parameter tuning, and a final model is built
+with all of the training data.
+
+Afterwards, save the resulting five final models.
+
+```{r}
 methods <- c("glm", "lda", "nnet", "rf", "svmLinear")
-models <- lapply(methods, model)
+models <- lapply(methods, train_model)
 names(models) <- methods
 
 saveRDS(models, "models.rds")
-
-resamps <- resamples(models)
-summary(resamps)
-
-trellis.par.set(caretTheme())
-bwplot(resamps, layout=c(2, 1))
-dotplot(resamps, metric="Accuracy")
-dotplot(resamps, metric="Kappa")
 ```
 
 Next: [5. Make predictions](predict.html)  

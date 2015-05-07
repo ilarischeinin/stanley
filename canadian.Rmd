@@ -11,13 +11,12 @@ Next: [2. Scrape raw data](scrape.html)
 1. Canadian programming
 -----------------------
 
-Since the contemporary form of ice hockey is in essence a Canadian sport,
-as a sign of appreciation I have written this project following conventions of
+I have played ice hockey for more than 25 years, and I feel passionate about the sport. I feel that nowhere else, not even in my native Finland, do people truly *get* ice hockey in the same way as Canadians do. Therefore, as a sign of appreciation, I have written this project following conventions of
 [Canadian programming](http://programmers.stackexchange.com/a/5576). For
-example, instead of function `is.numeric()`, I'm using `numeric.eh()`.
+example, instead of function `is.numeric()`, I am using `numeric.eh()`.
 
 These function definitions are stored in file `canadian.R`,
-which is `source()`'d to other scripts used.
+which is `source()`d to the main analysis scripts.
 
 ```{r, eval=FALSE}
 source("canadian.R")

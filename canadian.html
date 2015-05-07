@@ -63,15 +63,15 @@ img {
 <div id="header">
 <h1 class="title">NHL Stanley Cup Playoff Predictions</h1>
 <h4 class="author"><em>Ilari Scheinin</em></h4>
-<h4 class="date"><em>22 April, 2015</em></h4>
+<h4 class="date"><em>30 April, 2015</em></h4>
 </div>
 
 
 <p>Previous: <a href="https://github.com/ilarischeinin/stanley">README</a><br />Next: <a href="scrape.html">2. Scrape raw data</a></p>
 <div id="canadian-programming" class="section level2">
 <h2>1. Canadian programming</h2>
-<p>Since the contemporary form of ice hockey is in essence a Canadian sport, as a sign of appreciation I have written this project following conventions of <a href="http://programmers.stackexchange.com/a/5576">Canadian programming</a>. For example, instead of function <code>is.numeric()</code>, I’m using <code>numeric.eh()</code>.</p>
-<p>These function definitions are stored in file <code>canadian.R</code>, which is <code>source()</code>’d to other scripts used.</p>
+<p>I have played ice hockey for more than 25 years, and I feel passionate about the sport. I feel that nowhere else, not even in my native Finland, do people truly <em>get</em> ice hockey in the same way as Canadians do. Therefore, as a sign of appreciation, I have written this project following conventions of <a href="http://programmers.stackexchange.com/a/5576">Canadian programming</a>. For example, instead of function <code>is.numeric()</code>, I am using <code>numeric.eh()</code>.</p>
+<p>These function definitions are stored in file <code>canadian.R</code>, which is <code>source()</code>d to the main analysis scripts.</p>
 <pre class="r"><code>source(&quot;canadian.R&quot;)</code></pre>
 <pre><code># to keep the global environment clean, use a dedicated one for the functions.
 
@@ -84,8 +84,8 @@ if (!exists(&quot;.canadian_programming&quot;)) {
   # add the needed functions
   evalq({
     infinite.eh &lt;- function(...) { is.infinite(...) }
-    numeric.eh &lt;- function(...) { is.numeric(...) }
     na.eh &lt;- function(...) { is.na(...) }
+    numeric.eh &lt;- function(...) { is.numeric(...) }
   }, envir=.canadian_programming)
 
   # and attach it to make the functions available

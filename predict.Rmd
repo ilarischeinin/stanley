@@ -11,7 +11,11 @@ Next: [README](https://github.com/ilarischeinin/stanley)
 5. Make predictions
 -------------------
 
-Load packages and the Canadian programming library:
+In the previous step five different types of models (glm, lda, nnet, rf,
+svmLinear) were fitted to the training data of Stanley Cup playoffs from 2003
+to 2014. Now I want to use those models to make predictions for this year.
+
+Start by loading packages and the Canadian programming library:
 
 ```{r, echo=FALSE}
 options(width=120)
@@ -26,7 +30,38 @@ suppressMessages({
 source("canadian.R")
 ```
 
-Function to add game statistis.
+Load the models and summary statistics.
+
+```{r}
+gamestats <- readRDS("processed.rds")
+models <- readRDS("models.rds")
+```
+
+Any one of the five models could be used to make predictions. 
+
+the [Kappa statistic](https://en.wikipedia.org/wiki/Cohen%27s_kappa)
+
+resamps <- resamples(models)
+summary(resamps)
+
+trellis.par.set(caretTheme())
+bwplot(resamps, layout=c(2, 1))
+dotplot(resamps, metric="Accuracy")
+dotplot(resamps, metric="Kappa")
+
+
+# accuracy <- function(fit) { max(fit$result[, fit$metric]) }
+# accuracies <- sapply(models, accuracy)
+#
+# kappa <- function(fit) { max(fit$result[, "Kappa"]) }
+# kappas <- sapply(models, kappa)
+#
+# fit <- models[[which.max(kappas)]]
+```
+
+Include the same `add_stats()` function that was used when training the models.
+
+
 
 ```{r}
 add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
@@ -71,16 +106,6 @@ add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
 ```
 
 ```{r}
-gamestats <- readRDS("processed.rds")
-models <- readRDS("models.rds")
-
-# accuracy <- function(fit) { max(fit$result[, fit$metric]) }
-# accuracies <- sapply(models, accuracy)
-#
-# kappa <- function(fit) { max(fit$result[, "Kappa"]) }
-# kappas <- sapply(models, kappa)
-#
-# fit <- models[[which.max(kappas)]]
 
 winners <- function(games, models, gamestats) {
   suppressMessages({ captured <- capture.output({
@@ -176,6 +201,11 @@ round4 <- data_frame(season="20142015",
     "WPG",
     "PIT"))
 ```
+
+
+
+
+
 
 Predict.
 

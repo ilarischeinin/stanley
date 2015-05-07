@@ -11,16 +11,16 @@ Next: [3. Process data](process.html)
 2. Scrape raw data
 ------------------
 
-To scrape the data from [nhl.com](http://www.nhl.com), I am using the
-[nhlscrapr](https://github.com/acthomasca/nhlscrapr)
-[package](http://cran.r-project.org/web/packages/nhlscrapr/index.html). It has
-a single command `compile.all.games()`, which downloads and compiles
-everything together.
+[nhl.com](http://www.nhl.com) has play-by-play data available starting from
+season 2002--2003, for both regular season and playoff games. To scrape it, I
+am using the [nhlscrapr](https://github.com/acthomasca/nhlscrapr)
+[package](http://cran.r-project.org/web/packages/nhlscrapr/). It has a single
+command `compile.all.games()`, which downloads and compiles everything together.
 
 However, it waits 20 seconds between every game, and therefore takes more than
-3.5 days to run. Instead, one might want to use something like the two options
-below to download games one-by-one or by season, and to set a shorter time
-interval.
+3.5 days process all 12 seasons available. Instead, one might want to use
+something like the two options below to download games one-by-one or by season,
+and to set a shorter time interval.
 
 ```{r}
 suppressMessages({
@@ -30,7 +30,8 @@ suppressMessages({
 compile.all.games()
 ```
 
-To download games one-by-one or by season.
+In order to download games one-by-one or by season, these approaches can be
+used.
 
 ```{r, eval=FALSE}
 

@@ -9,8 +9,8 @@ if (!exists(".canadian_programming")) {
   # add the needed functions
   evalq({
     infinite.eh <- function(...) { is.infinite(...) }
-    numeric.eh <- function(...) { is.numeric(...) }
     na.eh <- function(...) { is.na(...) }
+    numeric.eh <- function(...) { is.numeric(...) }
   }, envir=.canadian_programming)
 
   # and attach it to make the functions available
