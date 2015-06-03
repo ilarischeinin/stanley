@@ -5,10 +5,10 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
-Previous: [3. Process data](process.html)  
-Next: [5. Make predictions](predict.html)
+Previous: [2. Process data](process.html)  
+Next: [4. Make predictions](predict.html)
 
-4. Train models
+3. Train models
 ---------------
 
 The summary statistics generated in the previous step are now combined with
@@ -30,7 +30,6 @@ suppressMessages({
   library(caret)
   library(doMC)
 })
-source("canadian.R")
 registerDoMC(cores=2)
 ```
 
@@ -197,5 +196,5 @@ names(models) <- methods
 saveRDS(models, "models.rds")
 ```
 
-Next: [5. Make predictions](predict.html)  
-Previous: [3. Process data](process.html)
+Next: [4. Make predictions](predict.html)  
+Previous: [2. Process data](process.html)

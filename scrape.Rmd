@@ -5,10 +5,10 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
-Previous: [1. Canadian programming](canadian.html)  
-Next: [3. Process data](process.html)
+Previous: [README](https://github.com/ilarischeinin/stanley)  
+Next: [2. Process data](process.html)
 
-2. Scrape raw data
+1. Scrape raw data
 ------------------
 
 [nhl.com](http://www.nhl.com) has play-by-play data available starting from
@@ -54,5 +54,5 @@ lapply(unique(games$season), function(season) {
 compile.all.games()
 ```
 
-Next: [3. Process data](process.html)  
-Previous: [1. Canadian programming](canadian.html)
+Next: [2. Process data](process.html)  
+Previous: [README](https://github.com/ilarischeinin/stanley)

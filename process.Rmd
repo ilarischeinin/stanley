@@ -8,7 +8,7 @@ output: html_document
 Previous: [1. Scrape raw data](scrape.html)  
 Next: [3. Train models](model.html)
 
-3. Process data
+2. Process data
 ---------------
 
 This script reads the data files produced by nhlscrapr and generates a summary
@@ -24,7 +24,6 @@ options(width=120)
 suppressMessages({
   library(dplyr)
 })
-source("canadian.R")
 ```
 
 Then define a function to calculate each team's performance for a given season.

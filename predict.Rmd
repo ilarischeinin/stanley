@@ -5,10 +5,10 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
-Previous: [4. Train models](model.html)  
+Previous: [3. Train models](model.html)  
 Next: [README](https://github.com/ilarischeinin/stanley)
 
-5. Make predictions
+4. Make predictions
 -------------------
 
 In the previous step five different types of models (glm, lda, nnet, rf,
@@ -27,7 +27,6 @@ suppressMessages({
   library(dplyr)
   library(caret)
 })
-source("canadian.R")
 ```
 
 Load the models and summary statistics.
@@ -230,4 +229,4 @@ round4
 ```
 
 Next: [README](https://github.com/ilarischeinin/stanley)  
-Previous: [4. Train models](model.html)
+Previous: [3. Train models](model.html)
