@@ -11,11 +11,11 @@ Next: [README](https://github.com/ilarischeinin/stanley)
 4. Make predictions
 -------------------
 
-In the previous step five different types of models (glm, lda, nnet, rf,
-svmLinear) were fitted to the training data of Stanley Cup playoffs from 2003
-to 2014. Now I want to use those models to make predictions for this year.
+In the previous step, five different types of models (glm, lda, nnet, rf,
+svmLinear) were fitted to the training data of NHL seasons from 2003 to 2014.
+Now I want to use those models to make predictions for this year.
 
-Start by loading packages and the Canadian programming library:
+Start by loading packages:
 
 ```{r, echo=FALSE}
 options(width=120)
@@ -36,31 +36,63 @@ gamestats <- readRDS("processed.rds")
 models <- readRDS("models.rds")
 ```
 
-Any one of the five models could be used to make predictions. 
+Any one of the five models could be used to make predictions. Once could for
+example pick the one with the highest accuracy or value for the
+[Kappa statistic](https://en.wikipedia.org/wiki/Cohen%27s_kappa).
 
-the [Kappa statistic](https://en.wikipedia.org/wiki/Cohen%27s_kappa)
+Each model contains these metrics for each combination of parameter values
+that were evalauted through cross-validation. The parameters with the highest
+accuracy were chosen for fitting the final model. The following function
+returns the cross-validated metric used.
 
+```{r}
+metric_for_final_parameters <- function(fit, metric="Accuracy") {
+  if (fit$maximize) {
+    chosen <- which.max(fit$result[, fit$metric])
+  } else {
+    chosen <- which.min(fit$result[, fit$metric])
+  }
+  fit$result[chosen, metric]
+}
+
+which.max(sapply(models, metric_for_final_parameters))
+which.max(sapply(models, metric_for_final_parameters, metric="Kappa"))
+```
+
+We can also look at the performance over all the resamplings.
+
+```{r}
 resamps <- resamples(models)
 summary(resamps)
 
-trellis.par.set(caretTheme())
 bwplot(resamps, layout=c(2, 1))
 dotplot(resamps, metric="Accuracy")
 dotplot(resamps, metric="Kappa")
-
-
-# accuracy <- function(fit) { max(fit$result[, fit$metric]) }
-# accuracies <- sapply(models, accuracy)
-#
-# kappa <- function(fit) { max(fit$result[, "Kappa"]) }
-# kappas <- sapply(models, kappa)
-#
-# fit <- models[[which.max(kappas)]]
 ```
 
-Include the same `add_stats()` function that was used when training the models.
+So, if we were to choose one of the models, we could pick the random forest.
+But instead of picking one, here I will use all five, and then take a majority
+vote. Here is the function to do that:
 
+```{r}
+winners <- function(games, models, gamestats) {
+  suppressMessages({ captured <- capture.output({
+    predictions <- as.data.frame(sapply(models, predict,
+      newdata=add_stats(games, gamestats)))
+  })})
+  if (nrow(games) == 1) {
+    predictions <- as.data.frame(t(predictions))
+    row.names(predictions) <- NULL
+  }
+  predictions$winner <- apply(predictions, 1, function(x)
+    names(sort(table(x), decreasing=TRUE))[1])
+  predictions <- ifelse(predictions == "away", games$awayteam, games$hometeam)
+  cbind(games, predictions)
+}
+```
 
+I also need to include the same `add_stats()` function that was used when
+training the models.
 
 ```{r}
 add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
@@ -104,39 +136,21 @@ add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
 }
 ```
 
-```{r}
-
-winners <- function(games, models, gamestats) {
-  suppressMessages({ captured <- capture.output({
-    predictions <- sapply(models, predict, newdata=add_stats(games, gamestats))
-  })})
-  if (nrow(games) > 1) {
-    concensus <- apply(predictions, 1, function(x)
-      names(sort(table(x), decreasing=TRUE))[1])
-  } else {
-    concensus <- names(sort(table(predictions), decreasing=TRUE))[1]
-  }
-  result <- games$hometeam
-  result[concensus == "away"] <- games$awayteam[concensus == "away"]
-  result
-}
-```
-
-Define the playoff games for round 1, and all possible game combinations for
-subsequent rounds.
+Define the actual playoff games for round 1, and all possible combinations of
+the playoff bracket for subsequent rounds.
 
 ```{r}
-round1 <- data_frame(season="20142015",
+round1_games <- data_frame(season="20142015",
   awayteam=c("PIT", "OTT", "DET", "NYI", "WPG", "MIN", "CHI", "CGY"),
   hometeam=c("NYR", "MTL", "T.B", "WSH", "ANA", "STL", "NSH", "VAN"))
 
-round2 <- data_frame(season="20142015",
+round2_possibilities <- data_frame(season="20142015",
   awayteam=c("WSH", "NYI", "T.B", "DET", "OTT", "OTT", "PIT", "PIT",
     "VAN", "CGY", "NSH", "CHI", "MIN", "MIN", "WPG", "CGY"),
   hometeam=c("NYR", "NYR", "MTL", "MTL", "T.B", "DET", "WSH", "NYI",
     "ANA", "ANA", "STL", "STL", "NSH", "CHI", "VAN", "WPG"))
 
-round3 <- data_frame(season="20142015",
+round3_possibilities <- data_frame(season="20142015",
   awayteam=c(
     "MTL", "T.B", "DET", "OTT",
     "WSH", "NYI", "PIT",
@@ -166,7 +180,7 @@ round3 <- data_frame(season="20142015",
     "VAN",
     "MIN", "MIN"))
 
-round4 <- data_frame(season="20142015",
+round4_possibilities <- data_frame(season="20142015",
   awayteam=c(
     "ANA", "STL", "NSH", "CHI", "VAN", "MIN", "WPG", "CGY",
     "ANA", "STL", "NSH", "CHI", "VAN", "MIN", "WPG", "CGY",
@@ -201,32 +215,60 @@ round4 <- data_frame(season="20142015",
     "PIT"))
 ```
 
-
-
-
-
-
-Predict.
+And then make predictions.
 
 ```{r}
-round1$winner <- winners(round1, models, gamestats)
+round1 <- winners(round1_games, models, gamestats)
 round1
 
-round2 <- round2 %>%
-  filter(awayteam %in% round1$winner, hometeam %in% round1$winner)
-round2$winner <- winners(round2, models, gamestats)
+round2 <- winners(
+  filter(round2_possibilities,
+    awayteam %in% round1$winner, hometeam %in% round1$winner),
+  models, gamestats)
 round2
 
-round3 <- round3 %>%
-  filter(awayteam %in% round2$winner, hometeam %in% round2$winner)
-round3$winner <- winners(round3, models, gamestats)
+round3 <- winners(
+  filter(round3_possibilities,
+    awayteam %in% round2$winner, hometeam %in% round2$winner),
+  models, gamestats)
 round3
 
-round4 <- round4 %>%
-  filter(awayteam %in% round3$winner, hometeam %in% round3$winner)
-round4$winner <- winners(round4, models, gamestats)
+round4 <- winners(
+  filter(round4_possibilities,
+    awayteam %in% round3$winner, hometeam %in% round3$winner),
+  models, gamestats)
 round4
 ```
+
+**The prediction for the 2015 Stanley Cup winner is Chicago Blackhawks.**
+
+For rounds beyond the first one, we should also look at predictions for the
+games that actually happened.
+
+```{r}
+round2_games <- data_frame(season="20142015",
+  awayteam=c("WSH", "T.B", "CGY", "MIN"),
+  hometeam=c("NYR", "MTL", "ANA", "CHI"))
+
+round3_games <- data_frame(season="20142015",
+  awayteam=c("T.B", "CHI"),
+  hometeam=c("NYR", "ANA"))
+
+round4_games <- data_frame(season="20142015",
+  awayteam=c("CHI"),
+  hometeam=c("T.B"))
+
+winners(round2_games, models, gamestats)
+winners(round3_games, models, gamestats)
+winners(round4_games, models, gamestats)
+```
+
+Overall, the prediction accuracy is:  
+round 1: 6 / 8  
+round 2: 3 / 4  
+round 3: 1 / 2  
+round 4: ? / 1  
+total: ? / 15 = ? %
 
 Next: [README](https://github.com/ilarischeinin/stanley)  
 Previous: [3. Train models](model.html)

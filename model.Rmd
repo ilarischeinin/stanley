@@ -12,14 +12,13 @@ Next: [4. Make predictions](predict.html)
 ---------------
 
 The summary statistics generated in the previous step are now combined with
-performance in the playoffs, and then used to train models. To facilitate use
-of multiple different models, I am using the
+outcomes of the playoffs series, and then used to train models. To facilitate
+use of multiple types of statistical models, I am using the
 [caret](https://github.com/topepo/caret)
 [package](http://cran.r-project.org/web/packages/caret/), which provides a
-unified interface for this purpose. In order to use both CPU cores on my laptop,
-I am using [package doMC](http://cran.r-project.org/web/packages/doMC/).
-
-Load packages and the Canadian programming library.
+unified interface for this purpose. And in order to use both CPU cores on my
+laptop, I am using
+[package doMC](http://cran.r-project.org/web/packages/doMC/).
 
 ```{r}
 suppressMessages({

@@ -63,15 +63,14 @@ img {
 <div id="header">
 <h1 class="title">NHL Stanley Cup Playoff Predictions</h1>
 <h4 class="author"><em>Ilari Scheinin</em></h4>
-<h4 class="date"><em>30 April, 2015</em></h4>
+<h4 class="date"><em>03 June, 2015</em></h4>
 </div>
 
 
-<p>Previous: <a href="process.html">3. Process data</a><br />Next: <a href="predict.html">5. Make predictions</a></p>
+<p>Previous: <a href="process.html">2. Process data</a><br />Next: <a href="predict.html">4. Make predictions</a></p>
 <div id="train-models" class="section level2">
-<h2>4. Train models</h2>
-<p>The summary statistics generated in the previous step are now combined with performance in the playoffs, and then used to train models. To facilitate use of multiple different models, I am using the <a href="https://github.com/topepo/caret">caret</a> <a href="http://cran.r-project.org/web/packages/caret/">package</a>, which provides a unified interface for this purpose. In order to use both CPU cores on my laptop, I am using <a href="http://cran.r-project.org/web/packages/doMC/">package doMC</a>.</p>
-<p>Load packages and the Canadian programming library.</p>
+<h2>3. Train models</h2>
+<p>The summary statistics generated in the previous step are now combined with outcomes of the playoffs series, and then used to train models. To facilitate use of multiple types of statistical models, I am using the <a href="https://github.com/topepo/caret">caret</a> <a href="http://cran.r-project.org/web/packages/caret/">package</a>, which provides a unified interface for this purpose. And in order to use both CPU cores on my laptop, I am using <a href="http://cran.r-project.org/web/packages/doMC/">package doMC</a>.</p>
 <pre class="r"><code>suppressMessages({
   # caret uses package plyr, but whenever dplyr and plyr are both loaded,
   # dplyr should be loaded after plyr. Hence plyr is loaded explicitly.
@@ -80,7 +79,6 @@ img {
   library(caret)
   library(doMC)
 })
-source(&quot;canadian.R&quot;)
 registerDoMC(cores=2)</code></pre>
 <p>Define a function to detect the winner of a series. It takes a vector of winners of individual games and returns the overall winner.</p>
 <pre class="r"><code>series_winner &lt;- function(x) {
@@ -90,7 +88,12 @@ registerDoMC(cores=2)</code></pre>
   stop(&quot;I'm sorry, but I couldn't figure out the winner: &quot;,
     paste(x, collapse=&quot;, &quot;))
 }</code></pre>
-<p>Define a function to append game statistics to the outcome of a playoff series. Its behavior can be controlled with the argument <code>which</code> between these three options: * <code>overall</code>: <code>away teams overall performance - home teams overall performance</code> * <code>single</code>: <code>away teams away performance - home teams home performance</code> * <code>both</code>: <code>away teams away performance - home teams home performance</code> and <code>away teams home performance - home teams away performance</code> (default, and the one I am using here)</p>
+<p>Define a function to append game statistics to the outcome of a playoff series. Its behavior can be controlled with the argument <code>which</code> between these three options:</p>
+<ul>
+<li><code>overall</code>: <code>away team's overall performance - home team's overall performance</code></li>
+<li><code>single</code>: <code>away team's away performance - home team's home performance</code></li>
+<li><code>both</code>: <code>away team's away performance - home team's home performance</code> and <code>away team's home performance - home team's away performance</code> (default, and the one I am using here)</li>
+</ul>
 <pre class="r"><code>add_stats &lt;- function(games, gamestats, which=c(&quot;both&quot;, &quot;single&quot;, &quot;overall&quot;)) {
   which &lt;- match.arg(which)
   if (which == &quot;overall&quot;) {
@@ -268,7 +271,7 @@ playoffs &lt;- playoffs %&gt;%
 </tr>
 </tbody>
 </table>
-<p>Next, define parameters for the model training. I am preprocessing the data with centering and scaling, and then using a 10-fold cross-validation repeated 10 times for parameter tuning. For each parameter, five different values are evaluated, and the combination with the best overall accuracy chosen.</p>
+<p>Next, define parameters for the model training. I am preprocessing the data with centering and scaling, and then using a 10-fold cross-validation repeated 10 times for parameter tuning. For each parameter, five different values are evaluated via the cross-validation, and the combination with the best overall accuracy chosen. A final model is then fitted with all of the training data and the chosen parameter values.</p>
 <p>In order to make the analysis reproducible, sets of random seeds are generated to be used at each point of training.</p>
 <pre class="r"><code>method &lt;- &quot;repeatedcv&quot;
 number &lt;- 10
@@ -295,8 +298,8 @@ fitControl &lt;- trainControl(method=method, number=number, repeats=repeats,
   message()
   fit
 }</code></pre>
-<p>Define which models we want to include, and then train them. I am including generalized linear model, linear discriminant analysis, neural network, random forests, and a support vector machine with a linear kernel.</p>
-<p>Afterwards, save the resulting models.</p>
+<p>Define which models we want to include, and then train them. I am including generalized linear model, linear discriminant analysis, neural network, random forests, and a support vector machine with a linear kernel. Each one of them undergoes the cross-validation for parameter tuning, and a final model is built with all of the training data.</p>
+<p>Afterwards, save the resulting five final models.</p>
 <pre class="r"><code>methods &lt;- c(&quot;glm&quot;, &quot;lda&quot;, &quot;nnet&quot;, &quot;rf&quot;, &quot;svmLinear&quot;)
 models &lt;- lapply(methods, train_model)</code></pre>
 <pre><code>## Training model: glm...
@@ -307,7 +310,7 @@ models &lt;- lapply(methods, train_model)</code></pre>
 <pre class="r"><code>names(models) &lt;- methods
 
 saveRDS(models, &quot;models.rds&quot;)</code></pre>
-<p>Next: <a href="predict.html">5. Make predictions</a><br />Previous: <a href="process.html">3. Process data</a></p>
+<p>Next: <a href="predict.html">4. Make predictions</a><br />Previous: <a href="process.html">2. Process data</a></p>
 </div>
 
 

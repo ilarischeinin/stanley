@@ -63,13 +63,13 @@ img {
 <div id="header">
 <h1 class="title">NHL Stanley Cup Playoff Predictions</h1>
 <h4 class="author"><em>Ilari Scheinin</em></h4>
-<h4 class="date"><em>30 April, 2015</em></h4>
+<h4 class="date"><em>03 June, 2015</em></h4>
 </div>
 
 
-<p>Previous: <a href="canadian.html">1. Canadian programming</a><br />Next: <a href="process.html">3. Process data</a></p>
+<p>Previous: <a href="https://github.com/ilarischeinin/stanley">README</a><br />Next: <a href="process.html">2. Process data</a></p>
 <div id="scrape-raw-data" class="section level2">
-<h2>2. Scrape raw data</h2>
+<h2>1. Scrape raw data</h2>
 <p><a href="http://www.nhl.com">nhl.com</a> has play-by-play data available starting from season 2002–2003, for both regular season and playoff games. To scrape it, I am using the <a href="https://github.com/acthomasca/nhlscrapr">nhlscrapr</a> <a href="http://cran.r-project.org/web/packages/nhlscrapr/">package</a>. It has a single command <code>compile.all.games()</code>, which downloads and compiles everything together.</p>
 <p>However, it waits 20 seconds between every game, and therefore takes more than 3.5 days process all 12 seasons available. Instead, one might want to use something like the two options below to download games one-by-one or by season, and to set a shorter time interval.</p>
 <pre class="r"><code>suppressMessages({
@@ -125,49 +125,65 @@ compile.all.games()</code></pre>
 <pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
 ## not recover x-y coordinates.</code></pre>
 <pre><code>## Pausing: 20
-## Downloading files for game 20142015 30211</code></pre>
-<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
-## not recover x-y coordinates.</code></pre>
-<pre><code>## Pausing: 20
-## Downloading files for game 20142015 30212</code></pre>
-<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
-## not recover x-y coordinates.</code></pre>
-<pre><code>## Pausing: 20
-## Downloading files for game 20142015 30213</code></pre>
-<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
-## not recover x-y coordinates.</code></pre>
-<pre><code>## Pausing: 20
-## Downloading files for game 20142015 30214</code></pre>
-<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
-## not recover x-y coordinates.</code></pre>
-<pre><code>## Pausing: 20
-## Downloading files for game 20142015 30215</code></pre>
-<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
-## not recover x-y coordinates.</code></pre>
-<pre><code>## Pausing: 20
-## Downloading files for game 20142015 30216</code></pre>
-<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
-## not recover x-y coordinates.</code></pre>
-<pre><code>## Pausing: 20
 ## Downloading files for game 20142015 30217</code></pre>
 <pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
 ## not recover x-y coordinates.</code></pre>
 <pre><code>## Pausing: 20
-## Downloading files for game 20142015 30221
+## Downloading files for game 20142015 30226
 ## Pausing: 20
-## Downloading files for game 20142015 30222</code></pre>
+## Downloading files for game 20142015 30227
+## Pausing: 20
+## Downloading files for game 20142015 30235</code></pre>
 <pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
 ## not recover x-y coordinates.</code></pre>
 <pre><code>## Pausing: 20
-## Downloading files for game 20142015 30223</code></pre>
+## Downloading files for game 20142015 30236</code></pre>
 <pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
 ## not recover x-y coordinates.</code></pre>
 <pre><code>## Pausing: 20
-## Downloading files for game 20142015 30224</code></pre>
+## Downloading files for game 20142015 30237</code></pre>
 <pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
 ## not recover x-y coordinates.</code></pre>
 <pre><code>## Pausing: 20
-## 20 consecutive failed attempts; stopping file retrieval.
+## Downloading files for game 20142015 30246</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30247</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30411
+## Pausing: 20
+## Downloading files for game 20142015 30412</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30413</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30414</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30415</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30416</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## Downloading files for game 20142015 30417</code></pre>
+<pre><code>## Warning in download.single.game(season, gcode, rdata.folder, ...): Could
+## not recover x-y coordinates.</code></pre>
+<pre><code>## Pausing: 20
+## 20142015 -- updating rosters on each game file.
+## Folding data frames. Total: 6
+## Folding data frames. Total: 3
+## Folding data frames. Total: 1
+## Adding event location sections.
 ## Saving to output file</code></pre>
 <pre><code>## [1] TRUE</code></pre>
 <p>In order to download games one-by-one or by season, these approaches can be used.</p>
@@ -188,7 +204,7 @@ lapply(unique(games$season), function(season) {
 
 # and once downloaded, compile everything together
 compile.all.games()</code></pre>
-<p>Next: <a href="process.html">3. Process data</a><br />Previous: <a href="canadian.html">1. Canadian programming</a></p>
+<p>Next: <a href="process.html">2. Process data</a><br />Previous: <a href="https://github.com/ilarischeinin/stanley">README</a></p>
 </div>
 
 

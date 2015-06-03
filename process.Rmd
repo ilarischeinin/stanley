@@ -11,10 +11,15 @@ Next: [3. Train models](model.html)
 2. Process data
 ---------------
 
-This script reads the data files produced by nhlscrapr and generates a summary
-of each team's performance in the regular season each year.
+In order to train models on the outcomes of past playoffs, I am calculating
+summary statistics on each teams performance in the regular season. This script
+reads the data files produced by
+[nhlscrapr](https://github.com/acthomasca/nhlscrapr) and generates these
+summaries for every team and for every season. It also generates separate
+statistics for away and home games, as well as an overall metric.
 
-First, load packages and the Canadian programming library:
+First, load the [dplyr](https://github.com/hadley/dplyr)
+[package](http://cran.r-project.org/web/packages/dplyr/) for data manipulation:
 
 ```{r, echo=FALSE}
 options(width=120)
@@ -26,7 +31,20 @@ suppressMessages({
 })
 ```
 
-Then define a function to calculate each team's performance for a given season.
+Next, define a function to calculate the summary statistics for each season. First for each game, calculate for both the away and home teams:
+
+* the proportion of goals scored (*e.g.* for away team:
+  `away goals / (away goals + home goals)`)
+* the proportion of shots
+* the proportion of faceoffs won
+* the proportion of penalties
+* power play (*e.g.* `power play goals for away team / penalties for home team`)
+* penalty kill (*e.g.*
+  `power play goals for home team / penalties for away team`)
+
+Then, calculate the average for the entire regular season. Separate averages
+are calculated for each team when they are playing away, when they are playing
+at home, and also the overall for both.
 
 ```{r}
 process_season <- function(theseason) {
@@ -107,14 +125,13 @@ process_season <- function(theseason) {
 
 ```
 
-Load all available seasons and run the function on each one, combine, and save.
+Finally, load all available seasons and run the function defined above on each one, combine results together, and save the processed data.
 
 ```{r}
 load(file.path("source-data", "nhlscrapr-core.RData"))
 seasons <- unique(games$season)
 rm(list=c("games", "roster.master", "roster.unique"))
 
-# separate
 seasonstats <- lapply(seasons, process_season)
 gamestats <- list(
   away=bind_rows(lapply(seasonstats, "[[", "away")),
@@ -125,15 +142,29 @@ rm(list=c("seasons", "seasonstats"))
 saveRDS(gamestats, "processed.rds")
 ```
 
+This is what the generated summary statistics look like:
+
 ```{r, eval=FALSE}
 head(gamestats[["away"]])
-head(gamestats[["home"]])
-head(gamestats[["overall"]])
 ```
 
 ```{r, echo=FALSE, results='asis'}
 knitr::kable(head(gamestats[["away"]]), digits=3)
+```
+
+```{r, eval=FALSE}
+head(gamestats[["home"]])
+```
+
+```{r, echo=FALSE, results='asis'}
 knitr::kable(head(gamestats[["home"]]), digits=3)
+```
+
+```{r, eval=FALSE}
+head(gamestats[["overall"]])
+```
+
+```{r, echo=FALSE, results='asis'}
 knitr::kable(head(gamestats[["overall"]]), digits=3)
 ```
 

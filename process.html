@@ -63,20 +63,28 @@ img {
 <div id="header">
 <h1 class="title">NHL Stanley Cup Playoff Predictions</h1>
 <h4 class="author"><em>Ilari Scheinin</em></h4>
-<h4 class="date"><em>22 April, 2015</em></h4>
+<h4 class="date"><em>03 June, 2015</em></h4>
 </div>
 
 
 <p>Previous: <a href="scrape.html">1. Scrape raw data</a><br />Next: <a href="model.html">3. Train models</a></p>
 <div id="process-data" class="section level2">
-<h2>3. Process data</h2>
-<p>This script reads the data files produced by nhlscrapr and generates a summary of each team’s performance in the regular season each year.</p>
-<p>First, load packages and the Canadian programming library:</p>
+<h2>2. Process data</h2>
+<p>In order to train models on the outcomes of past playoffs, I am calculating summary statistics on each teams performance in the regular season. This script reads the data files produced by <a href="https://github.com/acthomasca/nhlscrapr">nhlscrapr</a> and generates these summaries for every team and for every season. It also generates separate statistics for away and home games, as well as an overall metric.</p>
+<p>First, load the <a href="https://github.com/hadley/dplyr">dplyr</a> <a href="http://cran.r-project.org/web/packages/dplyr/">package</a> for data manipulation:</p>
 <pre class="r"><code>suppressMessages({
   library(dplyr)
-})
-source(&quot;canadian.R&quot;)</code></pre>
-<p>Then define a function to calculate each team’s performance for a given season.</p>
+})</code></pre>
+<p>Next, define a function to calculate the summary statistics for each season. First for each game, calculate for both the away and home teams:</p>
+<ul>
+<li>the proportion of goals scored (<em>e.g.</em> for away team: <code>away goals / (away goals + home goals)</code>)</li>
+<li>the proportion of shots</li>
+<li>the proportion of faceoffs won</li>
+<li>the proportion of penalties</li>
+<li>power play (<em>e.g.</em> <code>power play goals for away team / penalties for home team</code>)</li>
+<li>penalty kill (<em>e.g.</em> <code>power play goals for home team / penalties for away team</code>)</li>
+</ul>
+<p>Then, calculate the average for the entire regular season. Separate averages are calculated for each team when they are playing away, when they are playing at home, and also the overall for both.</p>
 <pre class="r"><code>process_season &lt;- function(theseason) {
   message(&quot;Processing season &quot;, substring(theseason, 1, 4), &quot;-&quot;,
     substring(theseason, 5, 8), &quot;...&quot;, appendLF=FALSE)
@@ -152,12 +160,11 @@ source(&quot;canadian.R&quot;)</code></pre>
   message()
   list(away=awaystats, home=homestats, overall=overallstats)
 }</code></pre>
-<p>Load all available seasons and run the function on each one, combine, and save.</p>
+<p>Finally, load all available seasons and run the function defined above on each one, combine results together, and save the processed data.</p>
 <pre class="r"><code>load(file.path(&quot;source-data&quot;, &quot;nhlscrapr-core.RData&quot;))
 seasons &lt;- unique(games$season)
 rm(list=c(&quot;games&quot;, &quot;roster.master&quot;, &quot;roster.unique&quot;))
 
-# separate
 seasonstats &lt;- lapply(seasons, process_season)</code></pre>
 <pre><code>## Processing season 2002-2003...
 ## Processing season 2003-2004...
@@ -178,9 +185,8 @@ seasonstats &lt;- lapply(seasons, process_season)</code></pre>
 rm(list=c(&quot;seasons&quot;, &quot;seasonstats&quot;))
   
 saveRDS(gamestats, &quot;processed.rds&quot;)</code></pre>
-<pre class="r"><code>head(gamestats[[&quot;away&quot;]])
-head(gamestats[[&quot;home&quot;]])
-head(gamestats[[&quot;overall&quot;]])</code></pre>
+<p>This is what the generated summary statistics look like:</p>
+<pre class="r"><code>head(gamestats[[&quot;away&quot;]])</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -257,6 +263,7 @@ head(gamestats[[&quot;overall&quot;]])</code></pre>
 </tr>
 </tbody>
 </table>
+<pre class="r"><code>head(gamestats[[&quot;home&quot;]])</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -333,6 +340,7 @@ head(gamestats[[&quot;overall&quot;]])</code></pre>
 </tr>
 </tbody>
 </table>
+<pre class="r"><code>head(gamestats[[&quot;overall&quot;]])</code></pre>
 <table>
 <thead>
 <tr class="header">
