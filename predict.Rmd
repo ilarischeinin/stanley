@@ -1,7 +1,6 @@
 ---
 title: "NHL Stanley Cup Playoff Predictions"
 author: "Ilari Scheinin"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
@@ -36,14 +35,12 @@ gamestats <- readRDS("processed.rds")
 models <- readRDS("models.rds")
 ```
 
-Any one of the five models could be used to make predictions. Once could for
-example pick the one with the highest accuracy or value for the
-[Kappa statistic](https://en.wikipedia.org/wiki/Cohen%27s_kappa).
-
-Each model contains these metrics for each combination of parameter values
+Any one of the five models could be used to make predictions. One could for
+example pick the one with the highest accuracy or
+[Kappa statistic](https://en.wikipedia.org/wiki/Cohen%27s_kappa). Each model contains these metrics for each combination of parameter values
 that were evalauted through cross-validation. The parameters with the highest
 accuracy were chosen for fitting the final model. The following function
-returns the cross-validated metric used.
+returns the cross-validated metric for the final model.
 
 ```{r}
 metric_for_final_parameters <- function(fit, metric="Accuracy") {
@@ -59,7 +56,7 @@ which.max(sapply(models, metric_for_final_parameters))
 which.max(sapply(models, metric_for_final_parameters, metric="Kappa"))
 ```
 
-We can also look at the performance over all the resamplings.
+We can also look at the performance over all resamplings.
 
 ```{r}
 resamps <- resamples(models)
@@ -70,9 +67,10 @@ dotplot(resamps, metric="Accuracy")
 dotplot(resamps, metric="Kappa")
 ```
 
-So, if we were to choose one of the models, we could pick the random forest.
-But instead of picking one, here I will use all five, and then take a majority
-vote. Here is the function to do that:
+So, if I were to choose one of the models, overall the random forest could be
+a god choice. But instead of picking just one, here I will use all five, and
+then take a majority vote on their individual predictions. Here is the function
+to do that:
 
 ```{r}
 winners <- function(games, models, gamestats) {
@@ -136,8 +134,9 @@ add_stats <- function(games, gamestats, which=c("both", "single", "overall")) {
 }
 ```
 
-Define the actual playoff games for round 1, and all possible combinations of
-the playoff bracket for subsequent rounds.
+Before I can go on to the predictions, I need to define who is playing against
+who. Here I define the actual playoff games for round 1, and all possible
+combinations of the playoff bracket for subsequent rounds.
 
 ```{r}
 round1_games <- data_frame(season="20142015",
@@ -145,9 +144,11 @@ round1_games <- data_frame(season="20142015",
   hometeam=c("NYR", "MTL", "T.B", "WSH", "ANA", "STL", "NSH", "VAN"))
 
 round2_possibilities <- data_frame(season="20142015",
-  awayteam=c("WSH", "NYI", "T.B", "DET", "OTT", "OTT", "PIT", "PIT",
+  awayteam=c(
+		"WSH", "NYI", "T.B", "DET", "OTT", "OTT", "PIT", "PIT",
     "VAN", "CGY", "NSH", "CHI", "MIN", "MIN", "WPG", "CGY"),
-  hometeam=c("NYR", "NYR", "MTL", "MTL", "T.B", "DET", "WSH", "NYI",
+  hometeam=c(
+		"NYR", "NYR", "MTL", "MTL", "T.B", "DET", "WSH", "NYI",
     "ANA", "ANA", "STL", "STL", "NSH", "CHI", "VAN", "WPG"))
 
 round3_possibilities <- data_frame(season="20142015",
@@ -215,24 +216,37 @@ round4_possibilities <- data_frame(season="20142015",
     "PIT"))
 ```
 
-And then make predictions.
+And then finally to the predictions:
 
 ```{r}
 round1 <- winners(round1_games, models, gamestats)
 round1
+```
 
+Now that I have predictions for round 1 winners, I pick only their games from
+all the possibilities for round 2:
+
+```{r}
 round2 <- winners(
   filter(round2_possibilities,
     awayteam %in% round1$winner, hometeam %in% round1$winner),
   models, gamestats)
 round2
+```
 
+Similarly for round 3, the conference finals:
+
+```{r}
 round3 <- winners(
   filter(round3_possibilities,
     awayteam %in% round2$winner, hometeam %in% round2$winner),
   models, gamestats)
 round3
+```
 
+And finally the Stanley Cup final:
+
+```{r}
 round4 <- winners(
   filter(round4_possibilities,
     awayteam %in% round3$winner, hometeam %in% round3$winner),
@@ -240,35 +254,65 @@ round4 <- winners(
 round4
 ```
 
-**The prediction for the 2015 Stanley Cup winner is Chicago Blackhawks.**
+My prediction for the 2015 Stanley Cup winner is **Chicago Blackhawks**.
 
-For rounds beyond the first one, we should also look at predictions for the
-games that actually happened.
+### Validation
+
+As the 2014-2015 playoffs are now over, we have our natural validation set
+available. (Since I could have naturally tampered with the prediction process
+after the fact to try to get to the real outcome, here is a link to the first
+GitHub
+[commit](https://github.com/ilarischeinin/stanley/blob/30c3838f629261796895ecd271d327fb7cabd543/predict.html)
+that included my predictions. It was made on April 23rd. So, not before the
+playoffs started on April 15th, but when round 1 was already 3-4 games in,
+depending on the series.)
+
+The prediction of Chicago Blackhawks as the the Stanley Cup winner turned out
+to be correct. But in the finals they played against Tampa Bay Lightnings, not
+New York Rangers. So, let us look at predictions for the playoff series that
+actually ended up happening. Round 1 is of course as above, but my model got two
+of those series wrong. Instead of New York Islanders and St. Louis Blues, it was
+Washington Capitals and Minnesota Wild who made it to the second round.
 
 ```{r}
 round2_games <- data_frame(season="20142015",
   awayteam=c("WSH", "T.B", "CGY", "MIN"),
   hometeam=c("NYR", "MTL", "ANA", "CHI"))
+winners(round2_games, models, gamestats)
+```
 
+Here one of the predictions was wrong. Instead of Montreal Canadians, it was
+Tampa Bay Lightnings who made it to the Eastern Conference final.
+
+```{r}
 round3_games <- data_frame(season="20142015",
   awayteam=c("T.B", "CHI"),
   hometeam=c("NYR", "ANA"))
+winners(round3_games, models, gamestats)
+```
 
+Again, one of the predictions was wrong. In the Stanley Cup final, Chicago
+Blackhawks faced Tampa Bay Lightnings, not New York Rangers.
+
+```{r}
 round4_games <- data_frame(season="20142015",
   awayteam=c("CHI"),
   hometeam=c("T.B"))
-
-winners(round2_games, models, gamestats)
-winners(round3_games, models, gamestats)
 winners(round4_games, models, gamestats)
 ```
 
-Overall, the prediction accuracy is:  
-round 1: 6 / 8  
-round 2: 3 / 4  
-round 3: 1 / 2  
-round 4: ? / 1  
-total: ? / 15 = ? %
+So overall, the prediction accuracy is:  
+round 1: 6 out of 8  
+round 2: 3 out of 4  
+round 3: 1 out of 2  
+round 4: 1 out of 1  
+total: 11 / 15 = 73.3 %
+
+So, by taking the majority vote from five different types of statistical models
+(glm, lda, nnet, rf, svmLinear) I was able to get a correct prediction for the
+2015 Stanley Cup winner, and a 73% overall accuracy for the individual palyoff
+series. An obvious next step could be to look at each one of the five models
+separately to see how they performed individually.
 
 Next: [README](https://github.com/ilarischeinin/stanley)  
 Previous: [3. Train models](model.html)

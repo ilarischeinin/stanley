@@ -1,7 +1,6 @@
 ---
 title: "NHL Stanley Cup Playoff Predictions"
 author: "Ilari Scheinin"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
