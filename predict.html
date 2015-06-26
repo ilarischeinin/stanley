@@ -279,7 +279,7 @@ round2</code></pre>
 ## 1 20142015      NYI      NYR NYR NYR  NYR NYR       NYI    NYR
 ## 2 20142015      T.B      MTL MTL MTL  MTL MTL       MTL    MTL
 ## 3 20142015      CGY      ANA ANA ANA  CGY ANA       CGY    ANA
-## 4 20142015      CHI      STL CHI CHI  CHI CHI       CHI    CHI</code></pre>
+## 4 20142015      CHI      STL CHI CHI  CHI STL       CHI    CHI</code></pre>
 <p>Similarly for round 3, the conference finals:</p>
 <pre class="r"><code>round3 &lt;- winners(
   filter(round3_possibilities,
@@ -301,7 +301,7 @@ round4</code></pre>
 <div id="validation" class="section level3">
 <h3>Validation</h3>
 <p>As the 2014-2015 playoffs are now over, we have our natural validation set available. (Since I could have naturally tampered with the prediction process after the fact to try to get to the real outcome, here is a link to the first GitHub <a href="https://github.com/ilarischeinin/stanley/blob/30c3838f629261796895ecd271d327fb7cabd543/predict.html">commit</a> that included my predictions. It was made on April 23rd. So, not before the playoffs started on April 15th, but when round 1 was already 3-4 games in, depending on the series.)</p>
-<p>The prediction of Chicago Blackhawks as the the Stanley Cup winner turned out to be correct. But in the finals they played against Tampa Bay Lightnings, not New York Rangers. So, let us look at predictions for the playoff series that actually ended up happening. Round 1 is of course as above, but my model got two of those series wrong. Instead of New York Islanders and St. Louis Blues, it was Washington Capitals and Minnesota Wild who made it to the second round.</p>
+<p>The prediction of Chicago Blackhawks as the the Stanley Cup winner turned out to be correct. But in the finals they played against Tampa Bay Lightning, not New York Rangers. So, let us look at predictions for the playoff series that actually ended up happening. Round 1 is of course as above, but my model got two of those series wrong. Instead of New York Islanders and St. Louis Blues, it was Washington Capitals and Minnesota Wild who made it to the second round.</p>
 <pre class="r"><code>round2_games &lt;- data_frame(season=&quot;20142015&quot;,
   awayteam=c(&quot;WSH&quot;, &quot;T.B&quot;, &quot;CGY&quot;, &quot;MIN&quot;),
   hometeam=c(&quot;NYR&quot;, &quot;MTL&quot;, &quot;ANA&quot;, &quot;CHI&quot;))
@@ -311,7 +311,7 @@ winners(round2_games, models, gamestats)</code></pre>
 ## 2 20142015      T.B      MTL MTL MTL  MTL MTL       MTL    MTL
 ## 3 20142015      CGY      ANA ANA ANA  CGY ANA       CGY    ANA
 ## 4 20142015      MIN      CHI CHI CHI  MIN MIN       CHI    CHI</code></pre>
-<p>Here one of the predictions was wrong. Instead of Montreal Canadians, it was Tampa Bay Lightnings who made it to the Eastern Conference final.</p>
+<p>Here one of the predictions was wrong. Instead of Montreal Canadians, it was Tampa Bay Lightning who made it to the Eastern Conference final.</p>
 <pre class="r"><code>round3_games &lt;- data_frame(season=&quot;20142015&quot;,
   awayteam=c(&quot;T.B&quot;, &quot;CHI&quot;),
   hometeam=c(&quot;NYR&quot;, &quot;ANA&quot;))
@@ -319,7 +319,7 @@ winners(round3_games, models, gamestats)</code></pre>
 <pre><code>##     season awayteam hometeam glm lda nnet  rf svmLinear winner
 ## 1 20142015      T.B      NYR NYR NYR  T.B T.B       NYR    NYR
 ## 2 20142015      CHI      ANA CHI CHI  CHI ANA       CHI    CHI</code></pre>
-<p>Again, one of the predictions was wrong. In the Stanley Cup final, Chicago Blackhawks faced Tampa Bay Lightnings, not New York Rangers.</p>
+<p>Again, one of the predictions was wrong. In the Stanley Cup final, Chicago Blackhawks faced Tampa Bay Lightning, not New York Rangers.</p>
 <pre class="r"><code>round4_games &lt;- data_frame(season=&quot;20142015&quot;,
   awayteam=c(&quot;CHI&quot;),
   hometeam=c(&quot;T.B&quot;))

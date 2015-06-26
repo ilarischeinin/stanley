@@ -268,7 +268,7 @@ playoffs started on April 15th, but when round 1 was already 3-4 games in,
 depending on the series.)
 
 The prediction of Chicago Blackhawks as the the Stanley Cup winner turned out
-to be correct. But in the finals they played against Tampa Bay Lightnings, not
+to be correct. But in the finals they played against Tampa Bay Lightning, not
 New York Rangers. So, let us look at predictions for the playoff series that
 actually ended up happening. Round 1 is of course as above, but my model got two
 of those series wrong. Instead of New York Islanders and St. Louis Blues, it was
@@ -282,7 +282,7 @@ winners(round2_games, models, gamestats)
 ```
 
 Here one of the predictions was wrong. Instead of Montreal Canadians, it was
-Tampa Bay Lightnings who made it to the Eastern Conference final.
+Tampa Bay Lightning who made it to the Eastern Conference final.
 
 ```{r}
 round3_games <- data_frame(season="20142015",
@@ -292,7 +292,7 @@ winners(round3_games, models, gamestats)
 ```
 
 Again, one of the predictions was wrong. In the Stanley Cup final, Chicago
-Blackhawks faced Tampa Bay Lightnings, not New York Rangers.
+Blackhawks faced Tampa Bay Lightning, not New York Rangers.
 
 ```{r}
 round4_games <- data_frame(season="20142015",
