@@ -2,7 +2,10 @@ NHL Stanley Cup Playoff Predictions
 ===================================
 
 This repository contains a set of scripts to make machine learning predictions
-for the Stanley Cup Playoffs. The process is split to five separate
+for the Stanley Cup Playoffs.
+There is an associated blog post
+[here](http://ilari.scheinin.fi/predicting-the-stanley-cup-champion/).
+The process is split to five separate
 [R Markdown](http://rmarkdown.rstudio.com) documents for:
 
 1. [Scrape raw data][1]
