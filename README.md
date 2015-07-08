@@ -17,7 +17,7 @@ In principle one can reproduce the entire analysis simply by running `make`.
 However, please note that by default the data scraping will take more than 3.5
 days to complete, and more feasible options are listed in the scraping document.
 
-[1]: https://rawgit.com/ilarischeinin/stanley/master/scrape.html
-[2]: https://rawgit.com/ilarischeinin/stanley/master/process.html
-[3]: https://rawgit.com/ilarischeinin/stanley/master/model.html
-[4]: https://rawgit.com/ilarischeinin/stanley/master/predict.html
+[1]: https://cdn.rawgit.com/ilarischeinin/stanley/0126954/scrape.html
+[2]: https://cdn.rawgit.com/ilarischeinin/stanley/0126954/process.html
+[3]: https://cdn.rawgit.com/ilarischeinin/stanley/0126954/model.html
+[4]: https://cdn.rawgit.com/ilarischeinin/stanley/0126954/predict.html
